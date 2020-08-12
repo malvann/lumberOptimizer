@@ -6,3 +6,4 @@ Programm is used with AutodeskRevitе lumber tables to calculate lumber order.
 2. Run app. Input max length of lumber-camp & stock persantage (6000 & 4% are default).
 3. Press "start". Choose file from 1. Save result file.
 If u have some problrms with lumber-camp length in table, or other u can see log.
+![Аннотация 2020-08-12 122932](https://user-images.githubusercontent.com/45212444/89999612-b13da100-dc97-11ea-85fe-1512008461c9.png)
