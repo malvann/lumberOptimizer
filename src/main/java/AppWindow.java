@@ -6,9 +6,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.stream.Collectors;
 
-public class AppWindow extends JFrame{
+public class AppWindow extends JFrame {
     private JPanel panel;
     private JLabel maxSizeLabel;
     private JLabel mmLabel;
@@ -18,65 +20,97 @@ public class AppWindow extends JFrame{
     private JLabel stockPer;
     private JLabel persLabel;
     private JTextField stockPersField;
+    private JLabel limberFilesLabel;
+    private JLabel lumberFilesNamesLable;
+    private JButton addFilesButton;
 
-    public AppWindow(){
+    public AppWindow() {
         this.setTitle("Lumber Optimizer");
         this.setLocationRelativeTo(null);
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setVisible(true);
         this.setContentPane(panel);
         this.pack();
-        startButton.addActionListener(new ActionListener(){
-            JFileChooser chooser;
-            File sourceFile;
-            LumberOptimiser optimizer;
+        startButton.setName("start");
+        addFilesButton.setName("lumber");
 
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //check maxSizeField is digit
-                String maxSize = maxSizeField.getText();
-                String stockPer = stockPersField.getText();
-                if (maxSize.matches("\\D") || stockPer.matches("\\D")) {
-                    warningLabel.setText("Incorrect max length or stock percentage.");
-                    return;
-                }
+        MultiActionListener multiAction = new MultiActionListener();
+        addFilesButton.addActionListener(multiAction);
+        startButton.addActionListener(multiAction);
+    }
 
-                //check file is .txt
-                chooser = new JFileChooser();
-                chooser.setFileFilter(new FileFilter(){
-                    @Override
-                    public boolean accept(File f) {
-                        return !f.isHidden() && f.getName().endsWith(".txt");
-                    }
+    class MultiActionListener implements ActionListener{
+        JFileChooser chooser;
+        File[] lumberFiles;
+        LumberOptimiser optimizer;
 
-                    @Override
-                    public String getDescription() {
-                        return "txt files";
-                    }
-                });
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            // -> start button action
+            String buttonName = ((JButton) e.getSource()).getName();
+            if (buttonName.equals(startButton.getName())) startButtonAction();
+            // -> add file actions
+            else addFileAction();
+        }
 
-                //get file
-                int returnVal = chooser.showOpenDialog(AppWindow.this);
-                if (returnVal == JFileChooser.APPROVE_OPTION) sourceFile = chooser.getSelectedFile();
+        private void startButtonAction(){
+            //check maxSizeField is digit
+            String maxSize = maxSizeField.getText();
+            String stockPerText = stockPersField.getText();
+            if (maxSize.matches("\\D") || stockPerText.matches("\\D")) {
+                warningLabel.setText("Incorrect max length or stock percentage.");
+                return;
+            }
 
-                //optimize work
-                optimizer = new LumberOptimiser(sourceFile, Integer.parseInt(maxSize), Integer.parseInt(stockPer));
-                if (!optimizer.checkMaxLength()) {
-                    warningLabel.setText("There are elements with lenght > " + maxSize + "mm");
-                    return;
-                }
+            //check lumber files !null
+            if (lumberFiles == null) {
+                warningLabel.setText("Lumber file isn't added yet.");
+                return;
+            }
 
-                //send res file
-                chooser.setSelectedFile(new File("Пиломатериал_"+ new SimpleDateFormat("dd.MM.yy").format(new Date()) +".txt"));
-                returnVal = chooser.showSaveDialog(AppWindow.this);
-                if(returnVal == JFileChooser.APPROVE_OPTION) {
-                    try {
-                        Files.write(chooser.getSelectedFile().toPath(), optimizer.getOptimizeList());
-                    } catch (IOException ioException) {
-                        ioException.printStackTrace();
-                    }
+            //optimize work
+            optimizer = new LumberOptimiser(lumberFiles, Integer.parseInt(maxSize), Integer.parseInt(stockPerText));
+            if (!optimizer.checkMaxLength()) {
+                warningLabel.setText("There are elements with lenght > " + maxSize + "mm");
+                return;
+            }
+
+            //send res file
+            chooser.setSelectedFile(new File("Пиломатериал_" + new SimpleDateFormat("dd.MM.yy").format(new Date()) + ".txt"));
+            int returnVal = chooser.showSaveDialog(AppWindow.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                try {
+                    Files.write(chooser.getSelectedFile().toPath(), optimizer.getOptimizeList());
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
                 }
             }
-        });
+        }
+
+        private void addFileAction(){
+            //check file is .txt
+            chooser = new JFileChooser();
+            chooser.setMultiSelectionEnabled(true);
+            chooser.setFileFilter(new FileFilter() {
+                @Override
+                public boolean accept(File f) {
+                    return !f.isHidden() && f.getName().endsWith(".txt");
+                }
+
+                @Override
+                public String getDescription() {
+                    return "txt files";
+                }
+            });
+
+            //get lumber/lather file
+            int returnVal = chooser.showOpenDialog(AppWindow.this);
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                lumberFiles = chooser.getSelectedFiles();
+                String textForFilesLabel = String.format("<html>%s</html>", Arrays.stream(lumberFiles).map(file -> file.getName()+"<br>").collect(Collectors.joining()));
+                lumberFilesNamesLable.setText(textForFilesLabel);
+            }
+        }
     }
+
 }
